@@ -6,6 +6,4 @@ import me.mauricee.kagel.BindView
 
 @BindView
 @Composable
-fun TestComposable(
-    text: String = "Hello World!",
-) = BasicText(text = text)
+fun ComposableText(text: String) = BasicText(text = text)
