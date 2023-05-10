@@ -7,7 +7,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.ksp.writeTo
 import me.mauricee.kagel.plugin.generation.CodeGenWriter
 
-class KspFileWriter(private val codeGenerator: CodeGenerator) : CodeGenWriter {
+class KspFileWriter(private val codeGenerator: CodeGenerator) : CodeGenWriter<KSFile> {
     override fun write(file: FileSpec, containingFile: KSFile?) {
         val dependencies = Dependencies(false, *listOfNotNull(containingFile).toTypedArray())
         file.writeTo(codeGenerator, dependencies)

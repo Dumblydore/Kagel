@@ -7,13 +7,14 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ksp.toTypeName
 import me.mauricee.kagel.BindView
 import me.mauricee.kagel.ParameterInfo
-import me.mauricee.kagel.plugin.generation.Function
+import me.mauricee.kagel.plugin.generation.ComposableReference
 import me.mauricee.kagel.plugin.generation.ViewGenerator
 import me.mauricee.kagel.plugin.generation.parameter.Parameter
 import me.mauricee.kagel.plugin.ksp.KspFileWriter
@@ -35,9 +36,9 @@ class KagelProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
     }
 }
 
-private fun KSFunctionDeclaration.toFunction(): Function {
+private fun KSFunctionDeclaration.toFunction(): ComposableReference<KSFile> {
     val parameters = parameters.map(KSValueParameter::toParameter)
-    return Function(
+    return ComposableReference(
         name = simpleName.asString(),
         packageName = packageName.asString(),
         containingFile = containingFile,
