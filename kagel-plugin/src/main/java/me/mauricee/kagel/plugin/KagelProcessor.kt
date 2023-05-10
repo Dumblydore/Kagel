@@ -1,43 +1,68 @@
 package me.mauricee.kagel.plugin
 
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
+import com.google.devtools.ksp.isAnnotationPresent
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.validate
+import com.squareup.kotlinpoet.ksp.toTypeName
 import me.mauricee.kagel.BindView
+import me.mauricee.kagel.ParameterInfo
+import me.mauricee.kagel.plugin.generation.Function
 import me.mauricee.kagel.plugin.generation.ViewGenerator
+import me.mauricee.kagel.plugin.generation.parameter.Parameter
+import me.mauricee.kagel.plugin.ksp.KspFileWriter
 import kotlin.reflect.KClass
 
 class KagelProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor {
-    private val viewGenerator = ViewGenerator(environment)
+    private val fileWriter = KspFileWriter(environment.codeGenerator)
+    private val viewGenerator = ViewGenerator(fileWriter)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val listedFunctions: Sequence<KSFunctionDeclaration> =
             resolver.findAnnotations(BindView::class)
         if (!listedFunctions.iterator().hasNext()) return emptyList()
-        listedFunctions.forEach(viewGenerator::generateView)
+        listedFunctions
+            .map(KSFunctionDeclaration::toFunction)
+            .forEach(viewGenerator::generateView)
 
-//        val sourceFiles = listedFunctions.mapNotNull { it.containingFile }
-//        val fileText = buildString {
-//            append("// ")
-//            append(functionNames.joinToString(", "))
-//        }
-//        val file = environment.codeGenerator.createNewFile(
-//            Dependencies(
-//                false,
-//                *sourceFiles.toList().toTypedArray(),
-//            ),
-//            "your.generated.file.package",
-//            "GeneratedLists",
-//        )
-
-//        file.write(fileText.toByteArray())
         return (listedFunctions).filterNot { it.validate() }.toList()
     }
-
-    private fun Resolver.findAnnotations(kClass: KClass<*>) =
-        getSymbolsWithAnnotation(kClass.qualifiedName.toString())
-            .filterIsInstance<KSFunctionDeclaration>()
 }
+
+private fun KSFunctionDeclaration.toFunction(): Function {
+    val parameters = parameters.map(KSValueParameter::toParameter)
+    return Function(
+        name = simpleName.asString(),
+        packageName = packageName.asString(),
+        containingFile = containingFile,
+        parameters = parameters,
+    )
+}
+
+@OptIn(KspExperimental::class)
+fun KSValueParameter.toParameter(): Parameter {
+    return Parameter(
+        name = name!!.asString(),
+        type = type.toTypeName(),
+        provider = if (type.isAnnotationPresent(ParameterInfo::class)) {
+            type.getAnnotationsByType(ParameterInfo::class)
+                ?.firstOrNull()
+                ?.provider
+                ?.constructors
+                ?.firstOrNull()
+                ?.call()
+        } else {
+            null
+        },
+    )
+}
+
+private fun Resolver.findAnnotations(kClass: KClass<*>) =
+    getSymbolsWithAnnotation(kClass.qualifiedName.toString())
+        .filterIsInstance<KSFunctionDeclaration>()

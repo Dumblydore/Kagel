@@ -1,11 +1,5 @@
 package me.mauricee.kagel.plugin.generation
 
-import com.google.devtools.ksp.KspExperimental
-import com.google.devtools.ksp.getAnnotationsByType
-import com.google.devtools.ksp.isAnnotationPresent
-import com.google.devtools.ksp.processing.Dependencies
-import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
@@ -14,131 +8,103 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.ksp.toTypeName
-import com.squareup.kotlinpoet.ksp.writeTo
-import me.mauricee.kagel.ParameterInfo
 import me.mauricee.kagel.plugin.ClassNames
-import me.mauricee.kagel.plugin.parameter.DefaultParameterProviders
-import java.lang.IllegalStateException
-import javax.lang.model.element.ExecutableElement
+import me.mauricee.kagel.plugin.generation.parameter.DefaultParameterProviders
 
-/*
-* public class TestComposableView(context: Context) : AbstractComposeView(context) {
-    private var _text: MutableState<String?> = mutableStateOf(null)
-    public var text: String?
-        get() = _text.value
-        set(value) {
-            _text.value = value
-        }
-
-    @Composable
-    override fun Content() {
-        TestComposable()
-    }
-}
-*
-* */
-
-class ViewGenerator(private val environment: SymbolProcessorEnvironment) {
-    @OptIn(KspExperimental::class)
-    fun generateView(function: KSFunctionDeclaration) {
+class ViewGenerator(private val writer: CodeGenWriter) {
+    fun generateView(function: Function) {
         /* Pull function declaration */
-        val className = function.simpleName.asString()
+        val className = function.name
         val parameters = function.parameters
 
         /* Generate Views based on function declaration information*/
-        val viewClass = ClassName(function.packageName.asString(), "${className}View")
-        FileSpec.builder(viewClass)
+        val viewClass = ClassName(function.packageName, "${className}View")
+        val fileSpec = FileSpec.builder(viewClass)
             .addImport(ClassNames.mutableStateOf, "")
             .addType(
                 TypeSpec.classBuilder(viewClass)
                     .primaryConstructor(
                         FunSpec.constructorBuilder()
+                            .addAnnotation(JvmOverloads::class.asTypeName())
                             .addParameter("context", ClassNames.androidContext)
-                            .build()
+                            .addParameter("attrs", ClassNames.attributeSet.copy(nullable = true))
+                            .addParameter(
+                                ParameterSpec.builder("defStyleAttr", Int::class.asTypeName())
+                                    .defaultValue("%L", 0)
+                                    .build(),
+                            )
+                            .build(),
                     )
                     .superclass(ClassNames.composeView)
-                    .addSuperclassConstructorParameter("context")
+                    .addSuperclassConstructorParameter(
+                        "%L, %L, %L",
+                        "context",
+                        "attrs",
+                        "defStyleAttr",
+                    )
                     .addFunction(
                         FunSpec.builder("Content")
                             .addAnnotation(ClassNames.composable)
                             .addModifiers(KModifier.OVERRIDE)
-                            .addStatement("${className}(%L)", buildCodeBlock {
-                                for (parameter in parameters) {
-                                    add(
-                                        "%N = _%N.value",
-                                        parameter.name!!.asString(),
-                                        parameter.name!!.asString()
-                                    )
-                                    if (parameter != parameters.last()) {
-                                        add(", ")
+                            .addStatement(
+                                "$className(%L)",
+                                buildCodeBlock {
+                                    for (parameter in parameters) {
+                                        add(
+                                            "%N = _%N.value",
+                                            parameter.name,
+                                            parameter.name,
+                                        )
+                                        if (parameter != parameters.last()) {
+                                            add(", ")
+                                        }
                                     }
-                                }
-                            }) //TODO: Add parameters
-                            .build()
+                                },
+                            ) // TODO: Add parameters
+                            .build(),
                     )
                     .apply {
                         for (parameter in parameters) {
-                            assert(parameter.name != null) { "function $className has a parameter with a missing name!" }
                             /* Add backing state property */
-                            val initialValue =
-                                if (parameter.type.isAnnotationPresent(ParameterInfo::class)) {
-                                    parameter.type.getAnnotationsByType(ParameterInfo::class)
-                                        .first()
-                                        .provider.constructors.first().call().get()
-                                } else {
-                                    DefaultParameterProviders[parameter.type.toTypeName()]!!.get()
-//                                 throw IllegalStateException("thing: ${parameter.type.toTypeName().javaClass}")
-                                }
+                            val initialValue = parameter.provider
+                                ?: DefaultParameterProviders[parameter.type]!!.get()
                             addProperty(
                                 PropertySpec.builder(
-                                    "_${parameter.name!!.asString()}",
+                                    "_${parameter.name}",
                                     ClassNames.mutableState.parameterizedBy(
-                                        parameter.type.toTypeName(),
+                                        parameter.type,
                                     ),
-                                    KModifier.PRIVATE
-                                ).initializer("mutableStateOf(%L)",initialValue).mutable().build(),
+                                    KModifier.PRIVATE,
+                                ).initializer("mutableStateOf(%L)", initialValue).mutable().build(),
                             ).build()
                             /* Add public property */
                             addProperty(
                                 PropertySpec.builder(
-                                    parameter.name!!.asString(),
-                                    parameter.type.toTypeName()
+                                    parameter.name,
+                                    parameter.type,
                                 ).getter(
                                     FunSpec.getterBuilder()
-                                        .addStatement("return _${parameter.name!!.asString()}.value")
-                                        .build()
+                                        .addStatement("return _${parameter.name}.value")
+                                        .build(),
                                 ).setter(
                                     FunSpec.setterBuilder()
                                         .addParameter(
-                                            ParameterSpec.builder("value", parameter.type.toTypeName()).build()
+                                            ParameterSpec.builder(
+                                                "value",
+                                                parameter.type,
+                                            ).build(),
                                         )
-                                        .addStatement("_${parameter.name!!.asString()}.value = value")
-                                        .build()
+                                        .addStatement("_${parameter.name}.value = value")
+                                        .build(),
                                 )
                                     .mutable().build(),
                             ).build()
                         }
                     }.build(),
-            )
-            .build().writeTo(
-                environment.codeGenerator,
-                Dependencies(
-                    false,
-                    *listOfNotNull(function.containingFile).toTypedArray(),
-                ),
-            )
+            ).build()
 
-//        val file = environment.codeGenerator.createNewFile(
-//            Dependencies(
-//                false,
-//                *sourceFiles.toList().toTypedArray(),
-//            ),
-//            "your.generated.file.package",
-//            "GeneratedLists",
-//        )
-//
-//        file.write(fileText.toByteArray())
+        writer.write(fileSpec, function.containingFile)
     }
 }
