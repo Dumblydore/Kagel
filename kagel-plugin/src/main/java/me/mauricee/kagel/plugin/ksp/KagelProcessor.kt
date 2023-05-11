@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin
+package me.mauricee.kagel.plugin.ksp
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
@@ -14,10 +14,9 @@ import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ksp.toTypeName
 import me.mauricee.kagel.BindView
 import me.mauricee.kagel.ParameterInfo
-import me.mauricee.kagel.plugin.generation.ComposableReference
-import me.mauricee.kagel.plugin.generation.ViewGenerator
-import me.mauricee.kagel.plugin.generation.parameter.Parameter
-import me.mauricee.kagel.plugin.ksp.KspFileWriter
+import me.mauricee.kagel.plugin.api.ComposableReference
+import me.mauricee.kagel.plugin.api.ViewGenerator
+import me.mauricee.kagel.plugin.api.parameter.Parameter
 import kotlin.reflect.KClass
 
 class KagelProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor {
@@ -53,7 +52,7 @@ fun KSValueParameter.toParameter(): Parameter {
         type = type.toTypeName(),
         provider = if (type.isAnnotationPresent(ParameterInfo::class)) {
             type.getAnnotationsByType(ParameterInfo::class)
-                ?.firstOrNull()
+                .firstOrNull()
                 ?.provider
                 ?.constructors
                 ?.firstOrNull()

@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin
+package me.mauricee.kagel.plugin.ksp
 
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment

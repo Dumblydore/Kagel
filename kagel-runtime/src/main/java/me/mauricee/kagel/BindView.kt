@@ -21,4 +21,5 @@ package me.mauricee.kagel
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
+@MustBeDocumented
 annotation class BindView

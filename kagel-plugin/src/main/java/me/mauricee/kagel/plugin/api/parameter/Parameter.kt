@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin.generation.parameter
+package me.mauricee.kagel.plugin.api.parameter
 
 import com.squareup.kotlinpoet.TypeName
 import me.mauricee.kagel.ParameterProvider

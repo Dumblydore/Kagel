@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin.generation
+package me.mauricee.kagel.plugin.api
 
 import com.squareup.kotlinpoet.FileSpec
 

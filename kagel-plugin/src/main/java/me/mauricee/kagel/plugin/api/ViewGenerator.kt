@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin.generation
+package me.mauricee.kagel.plugin.api
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -10,9 +10,8 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
-import me.mauricee.kagel.plugin.ClassNames
-import me.mauricee.kagel.plugin.generation.parameter.DefaultParameterProviders
-import me.mauricee.kagel.plugin.generation.parameter.Parameter
+import me.mauricee.kagel.plugin.api.parameter.DefaultParameterProviders
+import me.mauricee.kagel.plugin.api.parameter.Parameter
 
 /**
  * Generates Kotlin code for a Composable function and its parameters, and sends the results to CodeGenWriter.

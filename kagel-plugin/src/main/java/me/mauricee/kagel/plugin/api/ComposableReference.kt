@@ -1,6 +1,6 @@
-package me.mauricee.kagel.plugin.generation
+package me.mauricee.kagel.plugin.api
 
-import me.mauricee.kagel.plugin.generation.parameter.Parameter
+import me.mauricee.kagel.plugin.api.parameter.Parameter
 
 /**
  * A data class that represents a reference to a Composable function.

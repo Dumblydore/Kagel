@@ -1,4 +1,4 @@
-package me.mauricee.kagel.plugin
+package me.mauricee.kagel.plugin.api
 
 import com.squareup.kotlinpoet.ClassName
 
